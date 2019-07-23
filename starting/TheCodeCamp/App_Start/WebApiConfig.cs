@@ -1,8 +1,11 @@
-﻿using Newtonsoft.Json.Serialization;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Microsoft.Web.Http;
+using Microsoft.Web.Http.Routing;
+using Microsoft.Web.Http.Versioning;
+using Newtonsoft.Json.Serialization;
 using System.Web.Http;
+using System.Web.Http.Routing;
+using Microsoft.Web.Http.Versioning.Conventions;
+using TheCodeCamp.Controllers;
 
 namespace TheCodeCamp
 {
@@ -13,12 +16,36 @@ namespace TheCodeCamp
       // Web API configuration and services
       AutofacConfig.Register();
 
+            config.AddApiVersioning(cfg => {
+                cfg.DefaultApiVersion = new ApiVersion(1, 1);
+                cfg.AssumeDefaultVersionWhenUnspecified = true;
+                cfg.ReportApiVersions = true;
+                cfg.ApiVersionReader = new UrlSegmentApiVersionReader();
+                //ApiVersionReader.Combine(new HeaderApiVersionReader("X-Version"),
+                //    new QueryStringApiVersionReader("ver"));
+
+                cfg.Conventions.Controller<TalksController>()
+                .HasApiVersion(1, 0)
+                .HasApiVersion(1, 1)
+                .Action(m => m.Get(default(string), default(int), default(bool)))
+                    .MapToApiVersion(2, 0);
+            });
+
     // Change case of JSON
     config.Formatters.JsonFormatter.SerializerSettings.ContractResolver =
             new CamelCasePropertyNamesContractResolver();
 
+
+    var constraintResolver = new DefaultInlineConstraintResolver()
+    {
+        ConstraintMap =
+        {
+            ["apiVersion"] = typeof(ApiVersionRouteConstraint)
+        }
+    };
+
       // Web API routes
-      config.MapHttpAttributeRoutes();
+      config.MapHttpAttributeRoutes(constraintResolver);
     }
   }
 }
